@@ -1,4 +1,4 @@
 backbone-computed
 =================
 
-Computed values in Backbone
+Computed attributes for Backbone
