@@ -19,6 +19,14 @@ BackboneComputed.mixin = {
         return parent.apply(this, arguments);
     },
 
+    /**
+     * Overwrite Backbone 'set' method to check if a computed setter has
+     * been defined, before falling back to Backbine's own 'set' method
+     *
+     * @param {String|Object} attr - the key of the value your are interested in
+     *   setting. Can also be hash of attribute => value. 
+     * @param {Boolean} options.ignoreComputed - ignore any computed setters
+     */
     set: function(attr, value, options) {
         var parent, computedAttr, attrs, opts;
 
@@ -35,6 +43,8 @@ BackboneComputed.mixin = {
 
         options = options || {};
 
+        if (options.ignoreComputed) { return parent.apply(this, arguments); }
+
         // Set each attribute with getter on computed attribute or
         // fallback to Backbone set method
         _.each(attrs, function(value, attr) {
@@ -43,6 +53,12 @@ BackboneComputed.mixin = {
             this._changing = true;
             this._previousAttributes = _.clone(this.attributes);
             this.changed = {};
+
+            // Intercept any collections being set
+            if (value instanceof Backbone.Collection) {
+                this.stopListening(this.get('attr'));
+                this.listenTo(value, 'add remove reset sort', this.propagateCollectionEvent);
+            }
 
             if (attr in this.computed) {
                 computedAttr = this.computed[attr];
@@ -69,6 +85,37 @@ BackboneComputed.mixin = {
             this.trigger('change', this, options);
         }
         this._changing = false;
+    },
+
+    propagateCollectionEvent: function() {
+        var collection, attr, collectionChanged;
+        // Support arguments for all four collection events: 
+        // 'add remove reset sort' 
+        if (arguments[0] instanceof Backbone.Model) {
+            collection = arguments[1];
+        } else {
+            collection = arguments[0];
+        }
+        // Find attr (key) for collection
+        _.each(this.attributes, function(value, key) {
+            if (value === collection) {
+                attr = key;
+            }
+        });
+        
+        // Trigger computed informing it that a collection 
+        // has updated, or remove event listening on collection
+        // if it's no longer present in attributes
+        if (attr) {
+            collectionChanged = {};
+            collectionChanged[attr] = collection;
+            this.triggerComputed({
+                changed: collectionChanged,
+                externalEvent: true
+            });
+        } else {
+            this.stopListening(collection);
+        }
     },
 
     /*

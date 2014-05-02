@@ -72,6 +72,14 @@ describe('Backbone Computed', function() {
             expect(model.get('occupation')).toEqual('superhero');
         });
 
+        it('Doesn\'t set value with computed setter if options.ignoreComputed', function() {
+            spyOn(Model.prototype.computed.fullname, 'set');
+
+            model.set('fullname', 'Peter Parker', { ignoreComputed: true });
+            expect(Model.prototype.computed.fullname.set).not.toHaveBeenCalled();
+            expect(model.get('fullname')).toEqual('Peter Parker');
+        });
+
         it('triggers change when model.set with attribute \'key, value\'', function() {
             var changeSpy = jasmine.createSpy('- change spy -');
             model.on('change:fullname', changeSpy);
@@ -190,137 +198,3 @@ describe('Backbone Computed', function() {
         });
     });
 });
-
-
-
-// describe("backbone-computed", function() {
-  
-//     var Model, model;
-
-//     Model = Backbone.Model.extend({
-//         defaults: {
-//             firstname: 'John',
-//             lastname: 'Doe'
-//         },
-//         computed: {}
-//     });
-//     _.extend(Model.prototype, BackboneComputed.mixin);
-
-//     it("Get a version of BackboneComputed", function () {
-//         expect(BackboneComputed.VERSION).toBe("0.0.1");
-//     });
-    
-//     describe("with computed attribute defined as function", function() {
-//         Model.prototype.computed.fullname = function() {
-//             return this.get('firstname') + ' ' + this.get('lastname');
-//         };
-//         model = new Model();
-
-//         it("works only as custom getter", function() {
-//             expect(model.get('fullname')).toEqual('John Doe');
-//         });
-//     });
-
-//     describe("with computed attribute defined as object", function() {
-//         Model.prototype.computed.fullname = {
-//             get: function() {
-//                 return this.get('firstname') + ' ' + this.get('lastname');    
-//             },
-//             set: function(value, options) {
-//                 var parts = value.split(' ');
-//                 this.set('firstname', parts[0]);
-//                 this.set('lastname', parts[1]);
-//             }
-//         };
-//         model = new Model();
-
-//         it("works as custom getter through 'get' method", function() {
-//             expect(model.get('fullname')).toEqual('John Doe'); 
-//         });
-
-//         it("works as custom setter through 'set' method", function() {
-//             spyOn(Model.prototype.computed.fullname, 'set').and.callThrough();
-//             model.set('fullname', 'Peter Parker');
-//             expect(Model.prototype.computed.fullname.set).toHaveBeenCalledWith('Peter Parker', {});
-//             expect(model.get('firstname')).toEqual('Peter');
-//             expect(model.get('lastname')).toEqual('Parker');
-//         });
-
-//         it("throughs events when custom setter is called", function() {
-            
-//         });
-//     });
-
-//     describe('Computed mixin', function() {
-//         var model;
-
-//         beforeEach(function() {
-//             spyOn(ComputedModel.prototype, 'propagateCollectionEvent').and.callThrough();
-//             model = new ComputedModel();
-//         });
-
-//         afterEach(function() {
-//             model.off();
-//         });
-
-//         it('finds computed attribute, when calling get', function() {
-//             spyOn(ComputedModel.prototype.computed.fullname, 'get');
-//             spyOn(ComputedModel.prototype.computed, 'capsname');
-//             model.get('fullname');
-//             model.get('capsname');
-
-//             expect(ComputedModel.prototype.computed.fullname.get).toHaveBeenCalled();
-//             expect(ComputedModel.prototype.computed.capsname).toHaveBeenCalled();
-//         });
-
-//         it('fires change event for computed, when dependency for computed is updated', function() {
-//             var changeSpy = jasmine.createSpy('- change event spy -');
-//             model.on('change:fullname', changeSpy);
-//             model.set('firstname', 'Peter');
-
-//             expect(changeSpy).toHaveBeenCalledWith(model, 'Peter Johanson', {});
-//         });
-
-//         it('fires change event for computed, when dependency is updated and dependency ' +
-//                 'is a collection', function() {
-//             var changeSpy = jasmine.createSpy('- change event spy -');
-//             model.on('change:relativesCount', changeSpy);
-//             model.get('relatives').add({
-//                 name: 'grandma',
-//             });
-
-//             expect(changeSpy).toHaveBeenCalledWith(model, 1, {});
-//         });
-
-//         it('doesn\'t fire change event for computed, when collection is updated, ' +
-//                 'but is no longer present in model attributes', function() {
-//             var changeSpy = jasmine.createSpy('- change event spy -'),
-//                 oldRelatives;
-
-//             model.on('change:relativesCount', changeSpy);
-
-//             oldRelatives = model.get('relatives');
-//             model.set('relatives', new Backbone.Collection());
-//             oldRelatives.add({
-//                 name: 'grandma',
-//             });
-
-//             expect(changeSpy).not.toHaveBeenCalledWith(model, 1, {});
-
-//             // Check for event clean-up
-//             oldRelatives.add({
-//                 name: 'grandpa',
-//             });
-//             expect(ComputedModel.prototype.propagateCollectionEvent.calls.count()).toEqual(1);
-//         });
-
-//         it('includes computed attribute in model.changed when updated through dependency', function() {
-//             model.set('firstname', 'Peter');
-
-//             expect(model.changed).toEqual({
-//                 firstname: 'Peter',
-//                 fullname: 'Peter Johanson'
-//             });
-//         });
-
-// });
