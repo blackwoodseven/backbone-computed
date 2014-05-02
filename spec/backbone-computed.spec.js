@@ -188,13 +188,39 @@ describe('Backbone Computed', function() {
     describe('Mutable sibling dependencies', function() {
         // Only collections are supported as mutable objects
 
+        beforeEach(function() {
+            Model.prototype.computed.peersCount = {
+                deps: ['peers'],
+                get: function() {
+                    return this.get('peers').size();
+                }
+            }
+            model = new Model({
+                peers: new Backbone.Collection([
+                    {
+                        name: 'Kent Clark'
+                    }
+                ])
+            });
+        });
+
         it('triggers change event for computed when dependency is a collection', function() {
-            pending();
+            var changeSpy = jasmine.createSpy('- peersCount change spy -');
+            model.on('change:peersCount', changeSpy);
+
+            model.get('peers').add({ name: 'Wonder Woman' });
+            expect(changeSpy).toHaveBeenCalledWith(model, 2, {});
         });
 
         it('triggers change event for computed when dependency is a collection, and collection has been changed on model', function() {
             // Also makes sure eventhandlers are removed on old collection
-            pending();
+            var changeSpy = jasmine.createSpy('- peersCount change spy -');
+            model.on('change:peersCount', changeSpy);
+
+            model.set('peers', new Backbone.Collection([]));
+            model.get('peers').add({ name: 'Wonder Woman' });
+
+            expect(changeSpy).toHaveBeenCalledWith(model, 1, {});
         });
     });
 });

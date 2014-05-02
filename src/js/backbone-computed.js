@@ -96,6 +96,7 @@ BackboneComputed.mixin = {
         } else {
             collection = arguments[0];
         }
+
         // Find attr (key) for collection
         _.each(this.attributes, function(value, key) {
             if (value === collection) {
