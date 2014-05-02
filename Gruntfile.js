@@ -36,7 +36,7 @@ module.exports = function(grunt) {
                 options: {
                     position: 'top',
                     banner: '<%= banner %>',
-                    linebreak: true
+                    linebreak: false
                 },
                 files: {
                     src: [ "<%= dirs.build %>/backbone-computed.js" ]
@@ -49,7 +49,7 @@ module.exports = function(grunt) {
             computed: {
                 src: "<%= dirs.js %>/backbone-computed.js",
                 dest: "<%= dirs.build %>/backbone-computed.js",
-                objectToExport: 'computed',
+                objectToExport: 'BackboneComputed',
                 indent: '    ' // Indent by 4 spaces
             }
         },
