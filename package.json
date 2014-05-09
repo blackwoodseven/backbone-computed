@@ -1,6 +1,6 @@
 {
   "name": "backbone-computed",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "title": "Backbone Computed",
   "description": "Computed attributes for Backbone",
   "author": {
