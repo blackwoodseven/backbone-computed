@@ -1,11 +1,11 @@
-var BackboneComputed = { VERSION: '0.0.1' };
+var BackboneComputed = { VERSION: '0.0.2' };
 
 BackboneComputed.mixin = {
     get: function(attr) {
         var parent, computedAttr;
 
-        if (!this.computed) { return parent.apply(this, arguments); }
         if (!this.parent) { parent = Backbone.Model.prototype.get; }
+        if (!this.computed) { return parent.apply(this, arguments); }
 
         if (attr in this.computed) {
             computedAttr = this.computed[attr];
@@ -24,14 +24,14 @@ BackboneComputed.mixin = {
      * been defined, before falling back to Backbine's own 'set' method
      *
      * @param {String|Object} attr - the key of the value your are interested in
-     *   setting. Can also be hash of attribute => value. 
+     *   setting. Can also be hash of attribute => value.
      * @param {Boolean} options.ignoreComputed - ignore any computed setters
      */
     set: function(attr, value, options) {
         var parent, computedAttr, attrs, opts;
 
-        if (!this.computed) { return parent.apply(this, arguments); }
         if (!this.parent) { parent = Backbone.Model.prototype.set; }
+        if (!this.computed) { return parent.apply(this, arguments); }
 
         // Handle both "key", value and {key: value} -style arguments.
         if (typeof attr === 'object') {
@@ -89,8 +89,8 @@ BackboneComputed.mixin = {
 
     propagateCollectionEvent: function() {
         var collection, attr, collectionChanged;
-        // Support arguments for all four collection events: 
-        // 'add remove reset sort' 
+        // Support arguments for all four collection events:
+        // 'add remove reset sort'
         if (arguments[0] instanceof Backbone.Model) {
             collection = arguments[1];
         } else {
@@ -103,8 +103,8 @@ BackboneComputed.mixin = {
                 attr = key;
             }
         });
-        
-        // Trigger computed informing it that a collection 
+
+        // Trigger computed informing it that a collection
         // has updated, or remove event listening on collection
         // if it's no longer present in attributes
         if (attr) {
@@ -123,10 +123,10 @@ BackboneComputed.mixin = {
      * Trigger events for computed attributes
      * if dependencies have changed
      *
-     * @param {Boolean} options.externalEvent - 
+     * @param {Boolean} options.externalEvent -
      *   If false: Assume this is called right after 'set' and examine
-     *   freshly made 'changed' hash. 
-     *   If true: This method has been triggered by something else, 
+     *   freshly made 'changed' hash.
+     *   If true: This method has been triggered by something else,
      *   and changes in 'changed' are to be considered old.
      * @param {Dict} options.changed - Examine these changed attributes instead,
      *   if options.externalEvent is true.
@@ -178,7 +178,7 @@ BackboneComputed.mixin = {
     _buildDependencyHash: function() {
         // Construct dependencyHash if not already there
         // Depency hash looks like this:
-        //   dependency1: [computed1, computed2], 
+        //   dependency1: [computed1, computed2],
         //   dependency2: [computed1]
         // 
         // - also add eventhandlers to collection defined as depencies, as
