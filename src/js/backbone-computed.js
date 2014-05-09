@@ -1,11 +1,15 @@
 var BackboneComputed = { VERSION: '0.0.1' };
 
 BackboneComputed.mixin = {
-    get: function(attr) {
+
+    get: function(attr, options) {
         var parent, computedAttr;
 
-        if (!this.computed) { return parent.apply(this, arguments); }
-        if (!this.parent) { parent = Backbone.Model.prototype.get; }
+        parent = this.parent ? this.parent : Backbone.Model.prototype.get;
+        options = options || {};        
+
+        // Ignore if specifically told so
+        if (options.ignoreComputed) { return parent.apply(this, arguments); }
 
         if (attr in this.computed) {
             computedAttr = this.computed[attr];
@@ -28,10 +32,10 @@ BackboneComputed.mixin = {
      * @param {Boolean} options.ignoreComputed - ignore any computed setters
      */
     set: function(attr, value, options) {
-        var parent, computedAttr, attrs, opts;
+        var parent, computedAttr, attrs, opts, settings;
 
-        if (!this.computed) { return parent.apply(this, arguments); }
-        if (!this.parent) { parent = Backbone.Model.prototype.set; }
+        settings = BackboneComputed.settings;
+        parent = this.parent ? this.parent : Backbone.Model.prototype.set;
 
         // Handle both "key", value and {key: value} -style arguments.
         if (typeof attr === 'object') {
@@ -43,16 +47,20 @@ BackboneComputed.mixin = {
 
         options = options || {};
 
-        if (options.ignoreComputed) { return parent.apply(this, arguments); }
+        // Ignore if no computed hash or specifically told so
+        if (options.ignoreComputed || !this.computed) { 
+            return parent.apply(this, arguments); 
+        }
+
+        // Prevent nested calls to 'get' from firing 'change' event
+        // this._changing = true;
+        // this._previousAttributes = _.clone(this.attributes);
+        // this.changed = {};
 
         // Set each attribute with getter on computed attribute or
         // fallback to Backbone set method
         _.each(attrs, function(value, attr) {
             var computedAttr, currentValue;
-            // Prevent nested calls to 'get' from firing 'change' event
-            this._changing = true;
-            this._previousAttributes = _.clone(this.attributes);
-            this.changed = {};
 
             // Intercept any collections being set
             if (value instanceof Backbone.Collection) {
@@ -75,16 +83,19 @@ BackboneComputed.mixin = {
                     }
                 }
             } else {
-                parent.call(this, attr, value, options);
+                // parent.apply(this, [attr, value, options]);
             }
         }, this);
+        
+        // Temporary solution
+        parent.apply(this, arguments);
 
         this.triggerComputed();
 
-        if (!options.silent) {
-            this.trigger('change', this, options);
-        }
-        this._changing = false;
+        // if (!options.silent) {
+        //     this.trigger('change', this, options);
+        // }
+        // this._changing = false;
     },
 
     propagateCollectionEvent: function() {

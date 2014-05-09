@@ -1,3 +1,18 @@
+
+/*
+ * -------------------------------------------------------
+ * Project: Backbone Computed
+ * Version: 0.0.1
+ *
+ * Author:  Blackwood Seven A/S
+ * Site:     http://www.blackwoodseven.com
+ * Contact: 
+ *
+ *
+ * Copyright (c) 2014 Blackwood Seven A/S
+ * -------------------------------------------------------
+ */
+
 (function(root, factory) {
     if(typeof exports === 'object') {
         module.exports = factory();
@@ -13,11 +28,15 @@
     var BackboneComputed = { VERSION: '0.0.1' };
     
     BackboneComputed.mixin = {
-        get: function(attr) {
+    
+        get: function(attr, options) {
             var parent, computedAttr;
     
-            if (!this.computed) { return parent.apply(this, arguments); }
-            if (!this.parent) { parent = Backbone.Model.prototype.get; }
+            parent = this.parent ? this.parent : Backbone.Model.prototype.get;
+            options = options || {};        
+    
+            // Ignore if specifically told so
+            if (options.ignoreComputed) { return parent.apply(this, arguments); }
     
             if (attr in this.computed) {
                 computedAttr = this.computed[attr];
@@ -31,11 +50,19 @@
             return parent.apply(this, arguments);
         },
     
+        /**
+         * Overwrite Backbone 'set' method to check if a computed setter has
+         * been defined, before falling back to Backbine's own 'set' method
+         *
+         * @param {String|Object} attr - the key of the value your are interested in
+         *   setting. Can also be hash of attribute => value. 
+         * @param {Boolean} options.ignoreComputed - ignore any computed setters
+         */
         set: function(attr, value, options) {
-            var parent, computedAttr, attrs, opts;
+            var parent, computedAttr, attrs, opts, settings;
     
-            if (!this.computed) { return parent.apply(this, arguments); }
-            if (!this.parent) { parent = Backbone.Model.prototype.set; }
+            settings = BackboneComputed.settings;
+            parent = this.parent ? this.parent : Backbone.Model.prototype.set;
     
             // Handle both "key", value and {key: value} -style arguments.
             if (typeof attr === 'object') {
@@ -47,14 +74,26 @@
     
             options = options || {};
     
+            // Ignore if no computed hash or specifically told so
+            if (options.ignoreComputed || !this.computed) { 
+                return parent.apply(this, arguments); 
+            }
+    
+            // Prevent nested calls to 'get' from firing 'change' event
+            // this._changing = true;
+            // this._previousAttributes = _.clone(this.attributes);
+            // this.changed = {};
+    
             // Set each attribute with getter on computed attribute or
             // fallback to Backbone set method
             _.each(attrs, function(value, attr) {
                 var computedAttr, currentValue;
-                // Prevent nested calls to 'get' from firing 'change' event
-                this._changing = true;
-                this._previousAttributes = _.clone(this.attributes);
-                this.changed = {};
+    
+                // Intercept any collections being set
+                if (value instanceof Backbone.Collection) {
+                    this.stopListening(this.get('attr'));
+                    this.listenTo(value, 'add remove reset sort', this.propagateCollectionEvent);
+                }
     
                 if (attr in this.computed) {
                     computedAttr = this.computed[attr];
@@ -71,17 +110,52 @@
                         }
                     }
                 } else {
-                    parent.call(this, attr, value, options);
+                    // parent.apply(this, [attr, value, options]);
                 }
             }, this);
+            
+            // Temporary solution
+            parent.apply(this, arguments);
     
             this.triggerComputed();
     
-            if (!options.silent) {
-                this.trigger('change', this, options);
+            // if (!options.silent) {
+            //     this.trigger('change', this, options);
+            // }
+            // this._changing = false;
+        },
+    
+        propagateCollectionEvent: function() {
+            var collection, attr, collectionChanged;
+            // Support arguments for all four collection events: 
+            // 'add remove reset sort' 
+            if (arguments[0] instanceof Backbone.Model) {
+                collection = arguments[1];
+            } else {
+                collection = arguments[0];
             }
-            this._changing = false;
-        }
+    
+            // Find attr (key) for collection
+            _.each(this.attributes, function(value, key) {
+                if (value === collection) {
+                    attr = key;
+                }
+            });
+            
+            // Trigger computed informing it that a collection 
+            // has updated, or remove event listening on collection
+            // if it's no longer present in attributes
+            if (attr) {
+                collectionChanged = {};
+                collectionChanged[attr] = collection;
+                this.triggerComputed({
+                    changed: collectionChanged,
+                    externalEvent: true
+                });
+            } else {
+                this.stopListening(collection);
+            }
+        },
     
         /*
          * Trigger events for computed attributes
