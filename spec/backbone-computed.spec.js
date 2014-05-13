@@ -40,6 +40,39 @@ describe('Backbone Computed', function() {
         });
     });
 
+    describe('Improper setup', function() {
+        describe('Missing computed', function() {
+            var computed;
+            beforeEach(function() {
+                computed = Model.prototype.computed;
+                delete Model.prototype.computed;
+            });
+
+            afterEach(function() {
+                Model.prototype['computed'] = computed;
+            });
+
+            it('Get is undefined if no computed attributes exists on the model', function() {
+                model = new Model();
+                controlModel = new Backbone.Model();
+
+                expect(controlModel.get('fullname')).toBeUndefined();
+                expect(model.get('fullname')).toBeUndefined();
+            });
+
+            it('Set will set true attribute', function() {
+                model = new Model();
+                controlModel = new Backbone.Model();
+
+                controlModel.set('fullname', 'Bruce Banner');
+                model.set('fullname', 'Bruce Banner');
+
+                expect(controlModel.attributes['fullname']).toBeDefined();
+                expect(model.attributes['fullname']).toBeDefined();
+            });
+        });
+    });
+
     describe('Setters', function() {
 
         beforeEach(function() {
@@ -111,11 +144,8 @@ describe('Backbone Computed', function() {
             // - one specific change event for the computed attr should be fired once
             // - one specific change event for the true attr should be fired once
             // - one general change event should be fired for the model
-            // the changed hash should contain all changes when executing callbacks
-            // for all above events
+            // the changed hash will contain changes as they are succesfully executed
             
-            pending();
-
             var firstnameSpy = jasmine.createSpy('- firstname change spy -'),
                 lastnameSpy = jasmine.createSpy('- lastname change spy -'),
                 fullnameSpy = jasmine.createSpy('- fullname change spy -'),
@@ -127,6 +157,9 @@ describe('Backbone Computed', function() {
             });            
             model.on('change:firstname', function(model, value, options) {
                 firstnameSpy(value, model.changedAttributes());
+            });
+            model.on('change:lastname', function(model, value, options) {
+                lastnameSpy(value, model.changedAttributes());
             });
             model.on('change', function(model, options) {
                 changeSpy(model.changedAttributes());
@@ -140,9 +173,100 @@ describe('Backbone Computed', function() {
                 firstname: 'Peter'
             };
 
+            // Change for fullname computed attribute should contain all nested changes
             expect(fullnameSpy).toHaveBeenCalledWith('Peter Parker', expectedChangeHash);
-            expect(firstnameSpy).toHaveBeenCalledWith('Peter', expectedChangeHash);
+            // change for firstname true attribute should contain only firstname
+            expect(firstnameSpy).toHaveBeenCalledWith('Peter', _.pick(expectedChangeHash, 'firstname'));
+            // change for lastname true attribute should contain firstname, and lastname
+            expect(lastnameSpy).toHaveBeenCalledWith('Parker', _.omit(expectedChangeHash, 'fullname'));
+            // global change event should contain all changed attributes
             expect(changeSpy).toHaveBeenCalledWith(expectedChangeHash);
+        });
+
+        it('triggers changes correctly when setting true attribute from a change handler', function() {
+            var occupationSpy = jasmine.createSpy('- occupation change spy -'),
+                heightSpy = jasmine.createSpy('- height change spy-'),
+                changeSpy = jasmine.createSpy('- change change spy -'),
+                controlSpy = jasmine.createSpy('- control change spy -'),
+                controlChangeSpy = jasmine.createSpy('- control change change spy -'),
+                expectedFullnameChangeHash,
+                expectedOccupationChangeHash;
+
+            var controlModel = new Backbone.Model();
+            controlModel.on('change:firstname', function(model, value, options) {
+                controlSpy(value, model.changedAttributes());
+            });
+            controlModel.on('change:lastname', function(model, value, options) {
+                controlSpy(value, model.changedAttributes());
+                model.set('firstname', 'Hulk');
+                model.set('lens', '35mm');
+            });
+            controlModel.on('change', function(model, value, options) {
+                controlChangeSpy(model.changedAttributes());
+            });
+
+            model.on('change:fullname', function(model, value, options) {
+                model.set('occupation', 'photographer');
+            });            
+            model.on('change:occupation', function(model, value, options) {
+                occupationSpy(value, model.changedAttributes());
+            });
+            model.on('change:height', function(model, value, options) {
+                heightSpy(value, model.changedAttributes());
+            });
+            model.on('change', function(model, options) {
+                changeSpy(model.changedAttributes());
+            });
+
+            /*
+             * Control Model Set should trigger:
+             *
+             * change:lastname
+             * change:firstname
+             * change
+             */
+            controlModel.set('lastname', 'Hogan');
+
+            model.set('height', 178);
+            model.set('fullname', 'Peter Parker');
+
+            expectedFullnameChangeHash = {
+                fullname: 'Peter Parker',
+                lastname: 'Parker',
+                firstname: 'Peter'
+            };
+            expectedOccupationChangeHash = {
+                occupation: 'photographer'
+            };
+            expectedHeightChangeHash = {
+                height: 178
+            }
+
+            /*
+             * These control model change events
+             * are setup to show, how backbone handles nested
+             * set calls
+             *
+             * The backbone-computed set method should
+             * work the same way
+             */
+            expect(controlSpy.calls.count()).toBe(2); // One for each change:* event
+            expect(controlSpy.calls.allArgs()).toEqual([
+                ['Hogan', {lastname: 'Hogan'}], // First change event
+                ['Hulk', {lastname: 'Hogan', firstname: 'Hulk'}] // Second, nested, change event
+            ]);
+
+            expect(controlChangeSpy.calls.count()).toBe(1); // One for one top-level Model.set
+            expect(controlChangeSpy).toHaveBeenCalledWith({lastname: 'Hogan', firstname: 'Hulk', lens: '35mm'}); // All nested changes
+
+            expect(heightSpy.calls.count()).toBe(1);
+            expect(heightSpy).toHaveBeenCalledWith(178, expectedHeightChangeHash);
+
+            expect(occupationSpy.calls.count()).toBe(1);
+            expect(occupationSpy).toHaveBeenCalledWith('photographer', _.extend({}, expectedOccupationChangeHash, expectedFullnameChangeHash));
+
+            expect(changeSpy.calls.count()).toBe(2);
+            expect(changeSpy.calls.allArgs()).toEqual([[expectedHeightChangeHash], [_.extend(expectedFullnameChangeHash, expectedOccupationChangeHash)]]);
         });
 
     });  

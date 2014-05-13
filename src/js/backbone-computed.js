@@ -11,7 +11,7 @@ BackboneComputed.mixin = {
         // Ignore if specifically told so
         if (options.ignoreComputed) { return parent.apply(this, arguments); }
 
-        if (attr in this.computed) {
+        if (this.computed && attr in this.computed) {
             computedAttr = this.computed[attr];
 
             if (_.isFunction(computedAttr)) {
@@ -32,7 +32,7 @@ BackboneComputed.mixin = {
      * @param {Boolean} options.ignoreComputed - ignore any computed setters
      */
     set: function(attr, value, options) {
-        var parent, computedAttr, attrs, opts, settings;
+        var parent, computedAttr, attrs, opts, settings, unset, changes, changing, prev, current;
 
         settings = BackboneComputed.settings;
         parent = this.parent ? this.parent : Backbone.Model.prototype.set;
@@ -52,10 +52,18 @@ BackboneComputed.mixin = {
             return parent.apply(this, arguments); 
         }
 
-        // Prevent nested calls to 'get' from firing 'change' event
-        // this._changing = true;
-        // this._previousAttributes = _.clone(this.attributes);
-        // this.changed = {};
+        // Extract options
+        unset = options.unset;
+        silent = options.silent;
+        changes = [];
+        changing = this._changing;
+        this._changing = true;
+
+        if(!changing) {
+            this._previousAttributes = _.clone(this.attritbutes || {});
+            this.changed = {};
+        }
+        current = this.attributes, prev = this._previousAttributes;
 
         // Set each attribute with getter on computed attribute or
         // fallback to Backbone set method
@@ -76,26 +84,41 @@ BackboneComputed.mixin = {
                     currentValue = this.get(attr);
 
                     if (!_.isEqual(currentValue, value)) {
+                        changes.push(attr);
                         this.changed[attr] = value;
-                        if (!options.silent) {
-                            this.trigger('change:' + attr, this, value, options);
-                        }
+                        current[attr] = value;
+                        this.attributes[attr] = value;
                     }
                 }
-            } else {
-                // parent.apply(this, [attr, value, options]);
             }
         }, this);
         
-        // Temporary solution
+        /*
+         * Apply parent set method
+         * This allows all attributes not handled by
+         * computed attributes to be properly set
+         */
         parent.apply(this, arguments);
 
-        this.triggerComputed();
+        if (!silent) {
+            if (changes.length) this._pending = options;
+            for (var i = 0, l = changes.length; i < l; i++) {
+                this.trigger('change:' + changes[i], this, current[changes[i]], options);
+            }
+        }
 
-        // if (!options.silent) {
-        //     this.trigger('change', this, options);
-        // }
-        // this._changing = false;
+        if (changing) return this;
+        if (!silent) {
+            while (this._pending) {
+                options = this._pending;
+                this._pending = false;
+                this.trigger('change', this, options);
+                this.triggerComputed(options);
+            }
+        }
+        this._pending = false;
+        this._changing = false;
+        return this;
     },
 
     propagateCollectionEvent: function() {
