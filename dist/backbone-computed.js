@@ -2,7 +2,7 @@
 /*
  * -------------------------------------------------------
  * Project: Backbone Computed
- * Version: 0.0.4
+ * Version: 0.1.0
  *
  * Author:  Blackwood Seven A/S
  * Site:     http://www.blackwoodseven.com
@@ -25,7 +25,7 @@
     }
 }(this, function() {
 
-    var BackboneComputed = { VERSION: '0.0.4' };
+    var BackboneComputed = { VERSION: '0.1.0' };
 
     BackboneComputed.mixin = {
 
@@ -45,6 +45,8 @@
                     return computedAttr.apply(this);
                 } else if (_.isObject(computedAttr) && computedAttr.get) {
                     return computedAttr.get.apply(this);
+                } else {
+                    return undefined;
                 }
             }
             return parent.apply(this, arguments);

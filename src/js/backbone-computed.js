@@ -1,4 +1,4 @@
-var BackboneComputed = { VERSION: '0.0.5' };
+var BackboneComputed = { VERSION: '0.1.0' };
 
 BackboneComputed.mixin = {
 
