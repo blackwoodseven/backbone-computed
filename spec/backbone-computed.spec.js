@@ -97,7 +97,7 @@ describe('Backbone Computed', function() {
                 Model.prototype.fullname1 = {};
                 Model.prototype.fullname2 = {get: ''};
                 Model.prototype.fullname3 = {set: ''};
-                Model.prototype.fullname3 = {set: function(value, options) { this.set('test', 123); }}; 
+                Model.prototype.fullname4 = {set: function(value, options) { this.set('test', 123); }}; 
 
                 model.set('fullname1', 'Peter Parker');
                 model.set('fullname2', 'Peter Parker');
