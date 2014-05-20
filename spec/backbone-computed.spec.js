@@ -78,7 +78,6 @@ describe('Backbone Computed', function() {
                 Model.prototype.computed.fullname2 = undefined;
                 Model.prototype.computed.fullname3 = '';
                 Model.prototype.computed.fullname4 = [1, 2, 3];
-                console.log(Model.prototype.computed);
 
                 model = new Model();
 
