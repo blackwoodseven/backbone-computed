@@ -18,6 +18,8 @@ BackboneComputed.mixin = {
                 return computedAttr.apply(this);
             } else if (_.isObject(computedAttr) && computedAttr.get) {
                 return computedAttr.get.apply(this);
+            } else {
+                return undefined;
             }
         }
         return parent.apply(this, arguments);

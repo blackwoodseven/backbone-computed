@@ -71,6 +71,45 @@ describe('Backbone Computed', function() {
                 expect(model.attributes['fullname']).toBeDefined();
             });
         });
+
+        describe('Computed attribute with wrong types', function() {
+            it('Attribute is not function or object', function() {
+                Model.prototype.computed.fullname1 = null;
+                Model.prototype.computed.fullname2 = undefined;
+                Model.prototype.computed.fullname3 = '';
+                Model.prototype.computed.fullname4 = [1, 2, 3];
+                console.log(Model.prototype.computed);
+
+                model = new Model();
+
+                model.set('fullname1', 'Peter Parker');
+                model.set('fullname2', 'Peter Parker');
+                model.set('fullname3', 'Peter Parker');
+                model.set('fullname4', 'Peter Parker');
+
+                expect(model.get('fullname1')).toBeUndefined();
+                expect(model.get('fullname2')).toBeUndefined();
+                expect(model.get('fullname3')).toBeUndefined();
+                expect(model.get('fullname4')).toBeUndefined();
+            });
+
+            it('Attribute is incomplete object', function() {
+                Model.prototype.fullname1 = {};
+                Model.prototype.fullname2 = {get: ''};
+                Model.prototype.fullname3 = {set: ''};
+                Model.prototype.fullname3 = {set: function(value, options) { this.set('test', 123); }}; 
+
+                model.set('fullname1', 'Peter Parker');
+                model.set('fullname2', 'Peter Parker');
+                model.set('fullname3', 'Peter Parker');
+                model.set('fullname4', 'Peter Parker');
+
+                expect(model.get('fullname1')).toBeUndefined();
+                expect(model.get('fullname2')).toBeUndefined();
+                expect(model.get('fullname3')).toBeUndefined();
+                expect(model.get('fullname4')).toBeUndefined();
+            });
+        });
     });
 
     describe('Setters', function() {
@@ -110,7 +149,8 @@ describe('Backbone Computed', function() {
 
             model.set('fullname', 'Peter Parker', { ignoreComputed: true });
             expect(Model.prototype.computed.fullname.set).not.toHaveBeenCalled();
-            expect(model.get('fullname')).toEqual('Peter Parker');
+            expect(model.get('fullname')).toBeUndefined();
+            expect(model.get('fullname', { ignoreComputed: true })).toEqual('Peter Parker');
         });
 
         it('triggers change when model.set with attribute \'key, value\'', function() {
