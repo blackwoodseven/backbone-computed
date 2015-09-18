@@ -1,6 +1,9 @@
 {
   "name": "backbone-computed",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "main": [
+    "dist/backbone-computed.js"
+  ],
   "ignore": [
     "lib",
     "test",
